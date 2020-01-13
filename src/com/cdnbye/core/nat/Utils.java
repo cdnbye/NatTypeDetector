@@ -3,7 +3,7 @@ package com.cdnbye.core.nat;
 import java.net.*;
 import java.security.InvalidParameterException;
 
-public class NetUtils {
+public class Utils {
 
     public static boolean isPrivateIP(InetAddress ip) {
 
@@ -64,6 +64,10 @@ public class NetUtils {
 
         return new DatagramSocket(addr);
 
+    }
+
+    public static byte[] ipToBytes(String ip) throws UnknownHostException {
+        return InetAddress.getByName(ip).getAddress();
     }
 
 }

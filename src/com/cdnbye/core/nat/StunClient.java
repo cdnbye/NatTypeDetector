@@ -7,34 +7,33 @@ import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.security.InvalidParameterException;
 import java.util.Arrays;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class StunClient {
 
     private static final int UDP_SEND_COUNT = 3;
-    private static final ExecutorService executor = Executors.newCachedThreadPool();
+    private static final int TRANSACTION_TIMEOUT = 1000;
+    private static final int SEND_PORT = 50899;
 
     // Gets NAT info from STUN server.
-    public static StunResult query(String host, int port, InetSocketAddress localEP) throws SocketException {
-        if (host == null)
+    public static StunResult query(String stunHost, int stunPort, String localIP) throws SocketException {
+        if (stunHost == null)
         {
             throw new InvalidParameterException("host is null");
         }
-        if (localEP == null)
+        if (localIP == null)
         {
-            throw new InvalidParameterException("localEP is null");
+            throw new InvalidParameterException("localIP is null");
         }
 
+        InetSocketAddress localEP = new InetSocketAddress(SEND_PORT);
         DatagramSocket s = new DatagramSocket(localEP);
-        return query(host, port, s);
+        return query(stunHost, stunPort, s, localIP);
     }
 
     // Gets NAT info from STUN server. Returns UDP network info.
-    public static StunResult query(String host, int port, DatagramSocket socket)
+    public static StunResult query(String stunHost, int stunPort, DatagramSocket socket, String localIP)
     {
-        if (host == null)
+        if (stunHost == null)
         {
             throw new InvalidParameterException("host is null");
         }
@@ -42,12 +41,12 @@ public class StunClient {
         {
             throw new InvalidParameterException("socket is null");
         }
-        if (port < 1)
+        if (stunPort < 1)
         {
             throw new InvalidParameterException("Port value must be >= 1 !");
         }
 
-        InetSocketAddress remoteEndPoint = new InetSocketAddress(host, port);
+        InetSocketAddress remoteEndPoint = new InetSocketAddress(stunHost, stunPort);
 
 			/*
                 In test I, the client sends a STUN Binding Request to a server, without any flags set in the
@@ -108,7 +107,7 @@ public class StunClient {
         {
             // Test I
             StunMessage test1 = new StunMessage(StunMessageType.BindingRequest);
-            StunMessage test1Response = doTransaction(test1, socket, remoteEndPoint, 1600);
+            StunMessage test1Response = doTransaction(test1, socket, remoteEndPoint, TRANSACTION_TIMEOUT);
             // UDP blocked.
             if (test1Response == null)
             {
@@ -122,11 +121,10 @@ public class StunClient {
                 StunMessage test2 = new StunMessage(StunMessageType.BindingRequest, new StunChangeRequest(true, true));
 
                 // No NAT.
-                if (Arrays.equals(socket.getLocalAddress().getAddress(), test1Response.getMappedAddress().getAddress().getAddress()))
+                if (Arrays.equals(Utils.ipToBytes(localIP), test1Response.getMappedAddress().getAddress().getAddress()))
                 {
                     // IP相同
-//                    System.out.println("No NAT.");
-                    StunMessage test2Response = doTransaction(test2, socket, remoteEndPoint, 1600);
+                    StunMessage test2Response = doTransaction(test2, socket, remoteEndPoint, TRANSACTION_TIMEOUT);
                     // Open Internet.
                     if (test2Response != null)
                     {
@@ -141,8 +139,7 @@ public class StunClient {
                 // NAT
                 else
                 {
-//                    System.out.println("NAT");
-                    StunMessage test2Response = doTransaction(test2, socket, remoteEndPoint, 1600);
+                    StunMessage test2Response = doTransaction(test2, socket, remoteEndPoint, TRANSACTION_TIMEOUT);
 
                     // Full cone NAT.
                     if (test2Response != null)
@@ -159,8 +156,7 @@ public class StunClient {
                         // Test I(II)
 //                        System.out.println("begin Test I(II)");
                         StunMessage test12 = new StunMessage(StunMessageType.BindingRequest);
-//                        System.out.println("test1Response.getChangedAddress() " + test1Response.getChangedAddress());
-                        StunMessage test12Response = doTransaction(test12, socket, test1Response.getChangedAddress(), 1600);
+                        StunMessage test12Response = doTransaction(test12, socket, test1Response.getChangedAddress(), TRANSACTION_TIMEOUT);
                         if (test12Response == null)
                         {
                             throw new Exception("STUN Test I(II) didn't get response !");
@@ -168,8 +164,6 @@ public class StunClient {
                         else
                         {
                             // Symmetric NAT
-//                            System.out.println("test12Response " + test12Response.getMappedAddress().getPort());
-//                            System.out.println("test1Response " + test1Response.getMappedAddress().getPort());
                             if (!(Arrays.equals(test12Response.getMappedAddress().getAddress().getAddress(), test1Response.getMappedAddress().getAddress().getAddress())
                             && test12Response.getMappedAddress().getPort() == test1Response.getMappedAddress().getPort()))
                             {
@@ -181,7 +175,7 @@ public class StunClient {
 //                                System.out.println("begin Test III");
                                 StunMessage test3 = new StunMessage(StunMessageType.BindingRequest, new StunChangeRequest(false, true));
 
-                                StunMessage test3Response = doTransaction(test3, socket, test1Response.getChangedAddress(), 1600);
+                                StunMessage test3Response = doTransaction(test3, socket, test1Response.getChangedAddress(), TRANSACTION_TIMEOUT);
                                 // Restricted
                                 if (test3Response != null)
                                 {
@@ -200,87 +194,63 @@ public class StunClient {
         }
         catch (Exception e) {
             // unknown
-//            System.out.println("reach unknown");
             return new StunResult(NatType.Unknown, null);
         }
-//        finally
-//        {
-//            // Junk all late responses.
-//            long startTime = System.currentTimeMillis();
-//            while (System.currentTimeMillis() - startTime < 200)
-//            {
-//                // We got response.
-//                byte[] receiveBuffer = new byte[512];
-//                DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
-//                try {
-//                    socket.receive(receivePacket);
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//            socket.close();
-//        }
+        finally
+        {
+            socket.close();
+        }
     }
 
     // Does STUN transaction. Returns transaction response or null if transaction failed.
     // Returns transaction response or null if transaction failed.
-    private static StunMessage doTransaction(StunMessage request, DatagramSocket socket, InetSocketAddress remoteEndPoint, int timeout) throws IOException
+    private static StunMessage doTransaction(StunMessage request, DatagramSocket socket, InetSocketAddress remoteEndPoint, int timeout) throws Exception
     {
-        final CountDownLatch latch = new CountDownLatch(2);
-
+        long t1 = System.currentTimeMillis();
         byte[] requestBytes = request.toByteData();
-        byte[] resultBuffer = null;
-        int receiveCount = 0;
-        System.out.println("remoteEndPoint " + remoteEndPoint);
+
+//        System.out.println("remoteEndPoint " + remoteEndPoint);
         if (request.getChangeRequest() != null) {
-            System.out.println("request isChangePort " + request.getChangeRequest().isChangePort() + " isChangeIp " + request.getChangeRequest().isChangeIp());
+//            System.out.println("request isChangePort " + request.getChangeRequest().isChangePort() + " isChangeIp " + request.getChangeRequest().isChangeIp());
         }
-        DatagramPacket dp = new DatagramPacket(requestBytes, requestBytes.length, remoteEndPoint);
+//        System.out.println("request TransactionId " + new String(request.getTransactionId()));
 //            System.out.println("socket.send");
         socket.setSoTimeout(timeout);
-        for (int i=0;i<UDP_SEND_COUNT;i++) {
-            socket.send(dp);
-        }
-
-
-        while (true) {
-            // We got response.
-            //创建接收缓冲区
-            byte[] receiveBuffer = new byte[512];
-            DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
-            try {
-                socket.receive(receivePacket);
-            } catch (IOException e) {
-                receiveCount ++;
-                if (receiveCount == UDP_SEND_COUNT) {
-                    break;
-                } else {
-                    continue;
-                }
-            }
-
-            System.out.println("receivePacket.getAddress  " + receivePacket.getAddress() + " port " + receivePacket.getPort());
-            resultBuffer = receiveBuffer;
-            receiveCount ++;
-            if (receiveCount == UDP_SEND_COUNT) break;
-        }
-
-        if (resultBuffer == null) {
-            System.out.println("doTransaction timeout!");
-            return null;
-        }
-        // parse message
+        DatagramPacket dp = new DatagramPacket(requestBytes, requestBytes.length, remoteEndPoint);
+        boolean revResponse = false;                   // 是否接收到数据的标志位
+        int receiveCount = 0;
+        byte[] receiveBuffer = new byte[512];
+        DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
         StunMessage response = new StunMessage();
-        response.parse(resultBuffer);
-        // Check that transaction ID matches or not response what we want.
-        if (Arrays.equals(request.getTransactionId(), response.getTransactionId()))
-        {
-//                System.out.println("Arrays.equals");
+        while (!revResponse && receiveCount < UDP_SEND_COUNT) {
+            try {
+                socket.send(dp);
+                socket.receive(receivePacket);
+                // parse message
+                response.parse(receiveBuffer);
+                // Check that transaction ID matches or not response what we want.
+                if (Arrays.equals(request.getTransactionId(), response.getTransactionId())) {
+                    revResponse = true;
+                } else {
+                    System.out.println("TransactionId not match!");
+                    throw new Exception("TransactionId not match!");
+                }
+            } catch (IOException e) {
+
+                e.printStackTrace();
+            } finally {
+                receiveCount ++;
+            }
+        }
+
+        long t2 = System.currentTimeMillis();
+        System.out.println("doTransaction time " + (t2-t1));
+
+        if (revResponse) {
             return response;
         } else {
-            System.out.println("TransactionId not match!");
+            return null;
         }
 
-        return null;
     }
 }
