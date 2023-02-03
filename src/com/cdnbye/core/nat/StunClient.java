@@ -1,18 +1,23 @@
 package com.cdnbye.core.nat;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
-import java.net.SocketException;
+import java.net.*;
 import java.security.InvalidParameterException;
 import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
 
 public class StunClient {
 
     private static final int UDP_SEND_COUNT = 3;
     private static final int TRANSACTION_TIMEOUT = 1000;
     private static final int SEND_PORT = 50899;
+//    private static String DEFAULT_STUN_HOST = "stun.miwifi.com";
+    private static String DEFAULT_STUN_HOST = "stun.cdnbye.com";
+    private static int DEFAULT_STUN_PORT = 3478;
+
+    public static StunResult query(String localIP) throws SocketException {
+        return query(DEFAULT_STUN_HOST, DEFAULT_STUN_PORT, localIP);
+    }
 
     // Gets NAT info from STUN server.
     public static StunResult query(String stunHost, int stunPort, String localIP) throws SocketException {
@@ -48,60 +53,60 @@ public class StunClient {
 
         InetSocketAddress remoteEndPoint = new InetSocketAddress(stunHost, stunPort);
 
-			/*
-                In test I, the client sends a STUN Binding Request to a server, without any flags set in the
-                CHANGE-REQUEST attribute, and without the RESPONSE-ADDRESS attribute. This causes the server
-                to send the response back to the address and port that the request came from.
+        /*
+            In test I, the client sends a STUN Binding Request to a server, without any flags set in the
+            CHANGE-REQUEST attribute, and without the RESPONSE-ADDRESS attribute. This causes the server
+            to send the response back to the address and port that the request came from.
 
-                In test II, the client sends a Binding Request with both the "change IP" and "change port" flags
-                from the CHANGE-REQUEST attribute set.
+            In test II, the client sends a Binding Request with both the "change IP" and "change port" flags
+            from the CHANGE-REQUEST attribute set.
 
-                In test III, the client sends a Binding Request with only the "change port" flag set.
+            In test III, the client sends a Binding Request with only the "change port" flag set.
 
-                                    +--------+
-                                    |  Test  |
-                                    |   I    |
-                                    +--------+
-                                         |
-                                         |
-                                         V
-                                        /\              /\
-                                     N /  \ Y          /  \ Y             +--------+
-                      UDP     <-------/Resp\--------->/ IP \------------->|  Test  |
-                      Blocked         \ ?  /          \Same/              |   II   |
-                                       \  /            \? /               +--------+
-                                        \/              \/                    |
-                                                         | N                  |
-                                                         |                    V
-                                                         V                    /\
-                                                     +--------+  Sym.      N /  \
-                                                     |  Test  |  UDP    <---/Resp\
-                                                     |   II   |  Firewall   \ ?  /
-                                                     +--------+              \  /
-                                                         |                    \/
-                                                         V                     |Y
-                              /\                         /\                    |
-               Symmetric  N  /  \       +--------+   N  /  \                   V
-                  NAT  <--- / IP \<-----|  Test  |<--- /Resp\               Open
-                            \Same/      |   I    |     \ ?  /               Internet
-                             \? /       +--------+      \  /
-                              \/                         \/
-                              |                           |Y
-                              |                           |
-                              |                           V
-                              |                           Full
-                              |                           Cone
-                              V              /\
-                          +--------+        /  \ Y
-                          |  Test  |------>/Resp\---->Restricted
-                          |   III  |       \ ?  /
-                          +--------+        \  /
-                                             \/
-                                              |N
-                                              |       Port
-                                              +------>Restricted
+                                +--------+
+                                |  Test  |
+                                |   I    |
+                                +--------+
+                                     |
+                                     |
+                                     V
+                                    /\              /\
+                                 N /  \ Y          /  \ Y             +--------+
+                  UDP     <-------/Resp\--------->/ IP \------------->|  Test  |
+                  Blocked         \ ?  /          \Same/              |   II   |
+                                   \  /            \? /               +--------+
+                                    \/              \/                    |
+                                                     | N                  |
+                                                     |                    V
+                                                     V                    /\
+                                                 +--------+  Sym.      N /  \
+                                                 |  Test  |  UDP    <---/Resp\
+                                                 |   II   |  Firewall   \ ?  /
+                                                 +--------+              \  /
+                                                     |                    \/
+                                                     V                     |Y
+                          /\                         /\                    |
+           Symmetric  N  /  \       +--------+   N  /  \                   V
+              NAT  <--- / IP \<-----|  Test  |<--- /Resp\               Open
+                        \Same/      |   I    |     \ ?  /               Internet
+                         \? /       +--------+      \  /
+                          \/                         \/
+                          |                           |Y
+                          |                           |
+                          |                           V
+                          |                           Full
+                          |                           Cone
+                          V              /\
+                      +--------+        /  \ Y
+                      |  Test  |------>/Resp\---->Restricted
+                      |   III  |       \ ?  /
+                      +--------+        \  /
+                                         \/
+                                          |N
+                                          |       Port
+                                          +------>Restricted
 
-            */
+        */
 
         try
         {
@@ -209,10 +214,12 @@ public class StunClient {
         long t1 = System.currentTimeMillis();
         byte[] requestBytes = request.toByteData();
 
+        System.out.println("requestBytes length " + requestBytes.length);
+
 //        System.out.println("remoteEndPoint " + remoteEndPoint);
-        if (request.getChangeRequest() != null) {
+//        if (request.getChangeRequest() != null) {
 //            System.out.println("request isChangePort " + request.getChangeRequest().isChangePort() + " isChangeIp " + request.getChangeRequest().isChangeIp());
-        }
+//        }
 //        System.out.println("request TransactionId " + new String(request.getTransactionId()));
 //            System.out.println("socket.send");
         socket.setSoTimeout(timeout);
@@ -235,7 +242,7 @@ public class StunClient {
                     System.out.println("TransactionId not match!");
                     throw new Exception("TransactionId not match!");
                 }
-            } catch (IOException e) {
+            } catch (SocketTimeoutException e) {
 
                 e.printStackTrace();
             } finally {

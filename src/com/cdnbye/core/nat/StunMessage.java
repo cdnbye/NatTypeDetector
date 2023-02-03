@@ -177,7 +177,7 @@ public class StunMessage {
 //        System.out.println("StunMessageType " + type);
         // Message Length
         int messageLength = data[offset++] << 8 | data[offset++];
-//        System.out.println("messageLength " + messageLength);
+        System.out.println("messageLength " + messageLength);
         // Magic Cookie
         magicCookie = data[offset++] << 24 | data[offset++] << 16 | data[offset++] << 8 | data[offset++];
 
@@ -475,15 +475,15 @@ public class StunMessage {
 //        }
         else if (errorCode != null)
         {
-				/* 3489 11.2.9.
-                    0                   1                   2                   3
-                    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-                    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                    |                   0                     |Class|     Number    |
-                    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                    |      Reason Phrase (variable)                                ..
-                    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                */
+            /* 3489 11.2.9.
+                0                   1                   2                   3
+                0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                |                   0                     |Class|     Number    |
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                |      Reason Phrase (variable)                                ..
+                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            */
 
             byte[] reasonBytes = errorCode.getReasonText().getBytes();
 
@@ -523,18 +523,18 @@ public class StunMessage {
 
     private static InetSocketAddress parseIPAddr(byte[] data, int offset)
     {
-			/*
-                It consists of an eight bit address family, and a sixteen bit
-                port, followed by a fixed length value representing the IP address.
+        /*
+            It consists of an eight bit address family, and a sixteen bit
+            port, followed by a fixed length value representing the IP address.
 
-                0                   1                   2                   3
-                0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                |x x x x x x x x|    Family     |           Port                |
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                |                             Address                           |
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-            */
+            0                   1                   2                   3
+            0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+            +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            |x x x x x x x x|    Family     |           Port                |
+            +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            |                             Address                           |
+            +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        */
 
         // Skip family
         offset++;
@@ -592,18 +592,18 @@ public class StunMessage {
 
     private static void storeEndPoint(AttributeType type, InetSocketAddress endPoint, byte[] message, int offset)
     {
-			/*
-                It consists of an eight bit address family, and a sixteen bit
-                port, followed by a fixed length value representing the IP address.
+        /*
+            It consists of an eight bit address family, and a sixteen bit
+            port, followed by a fixed length value representing the IP address.
 
-                0                   1                   2                   3
-                0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                |x x x x x x x x|    Family     |           Port                |
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                |                             Address                           |
-                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-            */
+            0                   1                   2                   3
+            0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+            +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            |x x x x x x x x|    Family     |           Port                |
+            +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            |                             Address                           |
+            +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        */
 
         // Header
         message[offset++] = (byte)(type.value >> 8);
