@@ -12,10 +12,11 @@ public class main {
 
 //        String stunHost = "stun.miwifi.com";
 //        String stunHost = "stun.syncthing.net";
-//        int stunPort = 3478;
+        String stunHost = "stun.l.google.com";
+        int stunPort = 19302;
         String localIP = InetAddress.getLocalHost().getHostAddress();
         try {
-            StunResult result = StunClient.query(localIP);
+            StunResult result = StunClient.query(stunHost, stunPort, localIP);
             System.out.println("Nat type: " + result.getNatType());
             System.out.println("Public IP: " + result.getIpAddr());
         } catch (SocketException e) {
