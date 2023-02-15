@@ -10,10 +10,11 @@ public class main {
 
     public static void main(String[] args) throws Exception {
 
-//        String stunHost = "stun.miwifi.com";
+        String stunHost = "stun.miwifi.com";
 //        String stunHost = "stun.syncthing.net";
-        String stunHost = "stun.l.google.com";
-        int stunPort = 19302;
+//        String stunHost = "stun.l.google.com";
+//        String stunHost = "stun.cdnbye.com";
+        int stunPort = 3478;
         String localIP = InetAddress.getLocalHost().getHostAddress();
         try {
             StunResult result = StunClient.query(stunHost, stunPort, localIP);
