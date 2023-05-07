@@ -15,7 +15,7 @@ public class StunResult {
     }
 
     private final InetSocketAddress ipAddr;
-    private NatType natType;
+    private final NatType natType;
 
     public StunResult(NatType natType, InetSocketAddress ipAddr)
     {
