@@ -1,10 +1,8 @@
 package com.cdnbye.core.nat;
 
-import java.io.IOException;
 import java.net.*;
 import java.security.InvalidParameterException;
 import java.util.Arrays;
-import java.util.concurrent.CountDownLatch;
 
 public class StunClient {
 
