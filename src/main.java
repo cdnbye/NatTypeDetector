@@ -16,6 +16,7 @@ public class main {
 //        String stunHost = "stun.cdnbye.com";
         int stunPort = 3478;
         String localIP = InetAddress.getLocalHost().getHostAddress();
+        System.out.println("localIP: " + localIP);
         try {
             StunResult result = StunClient.query(stunHost, stunPort, localIP);
             System.out.println("Nat type: " + result.getNatType());

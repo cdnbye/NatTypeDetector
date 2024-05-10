@@ -203,7 +203,7 @@ public class StunMessage {
             */
 
             // Type
-            AttributeType type = AttributeType.getTypeByValue(data[offset++] << 8 | data[offset++]);
+            AttributeType type = AttributeType.getTypeByValue((data[offset++] << 8 | data[offset++]) & 0xFFFF);
 //            System.out.println("AttributeType " + type);
             // Length
             int length = data[offset++] << 8 | data[offset++];

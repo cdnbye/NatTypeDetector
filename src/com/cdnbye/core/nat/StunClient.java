@@ -237,7 +237,6 @@ public class StunClient {
                 if (Arrays.equals(request.getTransactionId(), response.getTransactionId())) {
                     revResponse = true;
                 } else {
-                    System.out.println("TransactionId not match!");
                     throw new Exception("TransactionId not match!");
                 }
             } catch (SocketTimeoutException e) {
